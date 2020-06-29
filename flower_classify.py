@@ -15,10 +15,10 @@ NUM_FLOWER_CLASSES = 4
 # Also change number of hidden nodes / size of each hidden layer (use layer dims for both)
 
 def load_data():
-# Later add test set also to this function
     """
     Loads all the image files along with labels into training set
     Classified and labeled based on directory name = flower name
+    Does the same for test set
     
     Returns:
     train_set_x -- training set x with R, G, B values in order (flattened)
@@ -28,6 +28,8 @@ def load_data():
         3 = nasturtium
         4 = alyssum
         0 = not a flower, random picture
+    test_set_x
+    test_set_y
     """
 
     n_x = RGB_LEN
@@ -60,7 +62,37 @@ def load_data():
             train_set_x = np.append(train_set_x, curr_training_set_x, axis = 1)
             train_set_y = np.append(train_set_y, curr_training_set_y, axis = 1)
 
-    return train_set_x, train_set_y
+
+
+    for flower_class, current_dir in enumerate(["../Data/test_square_images/01_agapanthus", "../Data/test_square_images/02_california_poppy\
+", "../Data/test_square_images/03_nasturtium", "../Data/test_square_images/04_alyssum", "../Data/test_square_images/not_flower_random"]):
+        m = len([filename for filename in os.listdir(current_dir) if filename.endswith("JPG") or filename.endswith("jpeg") or filename.endswith("jpg")])
+        print("Number of TEST examples in", current_dir, "is", m)
+
+        curr_test_set_x = np.zeros((n_x, m)) # Array test examples as columns
+        curr_test_set_y = np.zeros((n_y, m)) # n_y is the number of output classes
+
+        i=0  # Don't enumerate because some non JEPG files might be present, or test in the for statement for JPG
+        for filename in os.listdir(current_dir):
+            if filename.endswith("JPG") or filename.endswith("jpeg") or filename.endswith("jpg"):
+                im = Image.open(current_dir + "/" + filename)
+                small = resizeimage.resize_cover(im, [RES, RES])
+                pixels = list(small.getdata())
+                flatten = [rgb_val for p in pixels for rgb_val in p]  # Extract R G B values from the tuples into a long list
+                curr_test_set_x[:, i] = flatten  # Store 3 * RES * RES values per example
+                if flower_class < NUM_FLOWER_CLASSES: # Last class is not_flower_random pictures, should be left as 0, 0, 0, 0
+                    curr_test_set_y[flower_class, i] = 1
+                i=i+1
+
+        if flower_class == 0:
+            test_set_x = curr_test_set_x
+            test_set_y = curr_test_set_y
+        else:
+            test_set_x = np.append(test_set_x, curr_test_set_x, axis = 1)
+            test_set_y = np.append(test_set_y, curr_test_set_y, axis = 1)
+
+
+    return train_set_x, train_set_y, test_set_x, test_set_y
 
 
 
@@ -451,6 +483,7 @@ def update_parameters(parameters, grads, learning_rate):
     return parameters
 
 
+
 def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 3000, print_cost=False):#lr was 0.009
     """
     Implements a L-layer neural network: [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID.
@@ -508,13 +541,17 @@ def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 30
 ## BEGIN MAIN
 
 
-tsx, tsy = load_data()
+tsx, tsy, test_x, test_y = load_data()
 print(tsx.shape)
 print(tsy.shape)
 print(tsx)
 print(tsy)
+print(test_x.shape)
+print(test_y.shape)
+
 
 tsx = tsx/255
+test_x = test_x/255
 
 layers_dims = [RES*RES*3, 20, 7, 5, 4] #  4-layer model
 
@@ -524,7 +561,9 @@ layers_dims = [RES*RES*3, 10, 4] #  2-layer model
 
 L_layer_model(tsx, tsy, layers_dims, num_iterations = 3000, print_cost=True)
 
+# do some predicting based on test
 
+# add test set
 # notes for next steps:
 # gradient checking
 # simpler networks performance seems better, explore
