@@ -10,6 +10,7 @@ RES = 100
 NUM_PIX = RES * RES
 RGB_LEN = NUM_PIX * 3
 NUM_FLOWER_CLASSES = 4
+THRESHOLD = 0.4 # Above this probabilty, declare True for that flower class
 
 # Eventually, test different #layers for improvement to final solution (bias and variance)
 # Also change number of hidden nodes / size of each hidden layer (use layer dims for both)
@@ -255,7 +256,7 @@ def forward_prop(X, parameters):
     parameters: output of initialize_parameters_deep()
     
     Returns:
-    AL: final post-activation value of final output layer
+    AL: final post-activation value of final output layer (NUM_FLOWER_CLASSES, # examples)
     caches: list of caches containing:
                 every cache of linear_activation_forward() (there are L-1 of them, indexed from 1 to L-1, eg W1, W2)
                 each individual cache is a tuple containing the linear cache (A, W, b) and activation cache (Z)
@@ -535,6 +536,61 @@ def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 30
     return parameters
 
 
+def predict(X, y, parameters):
+    """
+    This function is used to predict the results of a  L-layer neural network.
+    
+    Arguments:
+    X: test data set of examples you would like to label using the parameters in the trained L-layer model network
+    y: test data set ground truth labels to assess how well the model is doing
+    parameters: parameters of the trained model
+    
+    Returns:
+    p -- predictions for the given dataset X
+    """
+    
+    m = X.shape[1]
+    n = len(parameters) // 2 # number of layers in the neural network, 2 arrays of parameters per layer
+    p = np.zeros((NUM_FLOWER_CLASSES,m))
+    
+    # Forward propagation
+    probs, caches = forward_prop(X, parameters)  # probs contains the predictions and is shape: NUM_FLOWER_CLASSES, m 
+
+    
+    # convert probs to 0/1 predictions
+    for i in range(0, probs.shape[1]):
+        for j in range(0, NUM_FLOWER_CLASSES):
+            if probs[j,i] > THRESHOLD:
+                p[j,i] = 1
+#            else:
+#                p[j,i] = 0  # this should not be necessary since the matrix is initialized to zeros
+    
+
+    print ("predictions: " + str(p))
+    print ("true labels: " + str(y))
+    print("Accuracy for Flower Class 1 Agapanthus: "  + str(np.sum((p[0, :] == y[0, :])/m)))
+        
+    return p
+
+
+def print_mislabeled_images(classes, X, y, p):
+    """
+    Plots images where predictions and truth were different.
+    X -- dataset
+    y -- true labels
+    p -- predictions
+    """
+    a = p + y
+    mislabeled_indices = np.asarray(np.where(a == 1))
+    plt.rcParams['figure.figsize'] = (40.0, 40.0) # set default size of plots
+    num_images = len(mislabeled_indices[0])
+    for i in range(num_images):
+        index = mislabeled_indices[1][i]
+        
+        plt.subplot(2, num_images, i + 1)
+        plt.imshow(X[:,index].reshape(64,64,3), interpolation='nearest')
+        plt.axis('off')
+        plt.title("Prediction: " + classes[int(p[0,index])].decode("utf-8") + " \n Class: " + classes[y[0,index]].decode("utf-8"))
 
 
 
@@ -553,15 +609,17 @@ print(test_y.shape)
 tsx = tsx/255
 test_x = test_x/255
 
-layers_dims = [RES*RES*3, 20, 7, 5, 4] #  4-layer model
+#layers_dims = [RES*RES*3, 20, 7, 5, 4] #  4-layer model
 
-L_layer_model(tsx, tsy, layers_dims, num_iterations = 3000, print_cost=True)
+#L_layer_model(tsx, tsy, layers_dims, num_iterations = 3000, print_cost=True)
 
 layers_dims = [RES*RES*3, 10, 4] #  2-layer model
 
-L_layer_model(tsx, tsy, layers_dims, num_iterations = 3000, print_cost=True)
+parameters = L_layer_model(tsx, tsy, layers_dims, num_iterations = 3000, print_cost=True)
 
 # do some predicting based on test
+predict(test_x,test_y, parameters)
+
 
 # add test set
 # notes for next steps:
